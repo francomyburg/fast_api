@@ -23,6 +23,10 @@ def find_id(id):
         if item["id"]==id:
             return item
 
+def find_index(id):
+     for index,element in enumerate(list_post):
+        if element["id"]==id:
+             return index
 
 @app.get("/")
 async def root():
@@ -47,4 +51,28 @@ def get_post(id: int):
         return(post)
     else:
         # response.status_code = status.HTTP_404_NOT_FOUND 
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="id was not found")
+    
+@app.delete("/posts/{id}",status_code=status.HTTP_204_NO_CONTENT)
+def delete_post(id:int):
+    """eliminar un elemento buscando por el id"""
+    index = find_index(id)
+    print(index)
+    if index != None:
+        del list_post[index]
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+    else:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="id was not found")
+    
+@app.put("/posts/{id}")
+def update_post(id: int, post: Post_model):
+    "Actualizar un elemento por el id especificado"
+    index = find_index(id)
+
+    if index !=None:
+        post_dict=post.model_dump()
+        post_dict["id"]=id
+        list_post[index]=post_dict
+    
+    else:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="id was not found")
