@@ -8,3 +8,6 @@ def hashpassword(user):
     user.password = hash_password
     
     return user
+
+def verifyPassword(password,password_to_verify):
+    return pwd_context.verify(password, password_to_verify)
