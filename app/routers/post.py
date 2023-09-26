@@ -39,6 +39,7 @@ def get_post(id: int,db: Session = Depends(get_db),user_id: int = Depends(oauth2
 
     # cursor.execute("""SELECT * FROM posts WHERE id=%s""",(id,))
     # post=cursor.fetchone()
+    print(user_id.email)
     post = db.query(models.Post).filter(models.Post.id == id).first()
     
     if not post:
