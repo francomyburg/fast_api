@@ -1,8 +1,17 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+import os
+from .config import settings
 
-SQLALCHEMY_DATABASE_URL = 'postgresql://admin:admin123@localhost:8080/Fastpi'
+hostname = settings.database_hostname
+port = settings.database_port
+database_name = settings.database_name
+user = settings.user_db
+password = settings.password_db
+
+
+SQLALCHEMY_DATABASE_URL = f'postgresql://{user}:{password}@{hostname}:{port}/{settings.database_name}'
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 

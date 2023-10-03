@@ -1,7 +1,8 @@
-from fastapi import FastAPI,Response,status,HTTPException,Depends,APIRouter
+from fastapi import Response,status,HTTPException,Depends,APIRouter
 from .. import models,schemas,utils,oauth2
 from ..database import get_db
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from typing import Optional,List
 
 
@@ -9,16 +10,32 @@ router = APIRouter(prefix="/posts",tags=["Posts"])
 
 
 
+# ,response_model=list[schemas.PostOut]
 
-
-@router.get("/",response_model=list[schemas.Post])
-def get_all_post(db: Session = Depends(get_db),user: int = Depends(oauth2.get_current_user), limit: int= 10):
+@router.get("/",response_model=list[schemas.PostOut])
+def get_all_post(db: Session = Depends(get_db),user: int = Depends(oauth2.get_current_user), limit: int= 10,skip:int=0,search: Optional[str]=""):
     # cursor.execute("SELECT * FROM posts")
     # posts = cursor.fetchall()
     
-    post = db.query(models.Post).all()
-    print(limit)
-    return post[:limit]
+    
+    results = db.query(models.Post,func.count(models.Votes.post_id).label("votes")).join(models.Votes,models.Post.id==models.Votes.post_id,isouter=True).group_by(models.Post.id).filter(models.Post.title.contains(search)).limit(limit).offset(skip).all()
+
+    response_data = []
+    for post, vote_count in results:
+       response_data.append({
+            "post": {
+            "id":post.id, 
+            "title":post.title, 
+            "content":post.content,
+            "published":post.published,
+            "created_at":post.created_at,
+            "user_owner" :post.user_owner,
+            "owner":post.owner
+            },
+            "votes": vote_count
+        }) 
+        
+    return response_data
 
 
 @router.post("/",status_code=status.HTTP_201_CREATED,response_model=schemas.Post)
@@ -37,18 +54,29 @@ def create_post(post: schemas.PostCreate,db: Session = Depends(get_db),user: int
     return new_post
     
 
-@router.get("/{id}",response_model=schemas.Post)
+@router.get("/{id}",response_model=schemas.PostOut)
 def get_post(id: int,db: Session = Depends(get_db),user: int = Depends(oauth2.get_current_user)):
 
     # cursor.execute("""SELECT * FROM posts WHERE id=%s""",(id,))
     # post=cursor.fetchone()
-    print(user.email)
-    post = db.query(models.Post).filter(models.Post.id == id).first()
-    
-    if not post:
+    results = db.query(models.Post,func.count(models.Votes.post_id).label("votes")).join(models.Votes,models.Post.id==models.Votes.post_id,isouter=True).group_by(models.Post.id).filter(models.Post.id == id).first()
+    if results:
+        final_result={
+            "post": {
+                "id":results[0].id, 
+                "title":results[0].title, 
+                "content":results[0].content,
+                "published":results[0].published,
+                "created_at":results[0].created_at,
+                "user_owner" :results[0].user_owner,
+                "owner":results[0].owner
+                },
+                "votes": results[1]
+             }
+    if not results:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail="id was not found")
     
-    return post
+    return final_result
     
 
 @router.delete("/{id}",status_code=status.HTTP_204_NO_CONTENT)

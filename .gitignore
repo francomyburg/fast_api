@@ -1,3 +1,4 @@
 pythonapi/
 __pycache__/
 postgres_data/
+.env
